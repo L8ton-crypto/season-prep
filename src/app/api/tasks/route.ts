@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureDb, getDb, newId } from "@/lib/db";
+import { checkWriteLimit } from "@/lib/rate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +24,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const limit = checkWriteLimit(req.headers);
+  if (!limit.ok) {
+    return NextResponse.json({ error: "rate limit exceeded" }, { status: 429 });
+  }
   await ensureDb();
   const sql = getDb();
   let body: Record<string, unknown> = {};
@@ -45,8 +50,4 @@ export async function POST(req: NextRequest) {
   if (notes.length > 1000) return NextResponse.json({ error: "notes too long" }, { status: 400 });
   const id = newId();
   await sql`
-    INSERT INTO sp_tasks (id, year, season, title, category, due_month, kid_id, notes, done, position)
-    VALUES (${id}, ${year}, ${season}, ${title}, ${category}, ${due_month}, ${kid_id}, ${notes}, false, 999)
-  `;
-  return NextResponse.json({ id, success: true });
-}
+    INSERT INTO sp_tasks (id, year, season, title, category, due_month, ki

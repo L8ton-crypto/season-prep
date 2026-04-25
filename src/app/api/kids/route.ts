@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureDb, getDb, newId } from "@/lib/db";
+import { checkWriteLimit } from "@/lib/rate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +17,10 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const limit = checkWriteLimit(req.headers);
+  if (!limit.ok) {
+    return NextResponse.json({ error: "rate limit exceeded" }, { status: 429 });
+  }
   await ensureDb();
   const sql = getDb();
   let body: Record<string, unknown> = {};
@@ -30,8 +35,4 @@ export async function POST(req: NextRequest) {
   if (name.length > 50) return NextResponse.json({ error: "name too long" }, { status: 400 });
   const id = newId();
   await sql`
-    INSERT INTO sp_kids (id, name, born_year, size_top, size_bottom, size_shoe, notes)
-    VALUES (${id}, ${name}, ${born_year}, '', '', '', '')
-  `;
-  return NextResponse.json({ id, success: true });
-}
+    INS
