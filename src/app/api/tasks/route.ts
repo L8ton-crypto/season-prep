@@ -50,4 +50,8 @@ export async function POST(req: NextRequest) {
   if (notes.length > 1000) return NextResponse.json({ error: "notes too long" }, { status: 400 });
   const id = newId();
   await sql`
-    INSERT INTO sp_tasks (id, year, season, title, category, due_month, ki
+    INSERT INTO sp_tasks (id, year, season, title, category, due_month, kid_id, notes, done, position)
+    VALUES (${id}, ${year}, ${season}, ${title}, ${category}, ${due_month}, ${kid_id}, ${notes}, false, 999)
+  `;
+  return NextResponse.json({ id, success: true });
+}

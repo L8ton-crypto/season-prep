@@ -20,7 +20,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
-  // Only specific fields are mutable.
   const sets: string[] = [];
   const vals: (string | number | boolean | null)[] = [];
   if (typeof body.done === "boolean") {
@@ -48,7 +47,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (sets.length === 0) {
     return NextResponse.json({ error: "no valid fields" }, { status: 400 });
   }
-  // Build a single tagged-template UPDATE per known field. Run individually (cheap, max 5).
   for (let i = 0; i < sets.length; i++) {
     const field = sets[i];
     const val = vals[i];
@@ -69,4 +67,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const limit = checkWriteLimit(req.headers);
-  if (!limit
+  if (!limit.ok) {
+    return NextResponse.json({ error: "rate limit exceeded" }, { status: 429 });
+  }
+  await ensureDb();
+  const sql = getDb();
+  const { id } = await params;
+  if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+  await sql`DELETE FROM sp_tasks WHERE id=${id}`;
+  return NextResponse.json({ success: true });
+}

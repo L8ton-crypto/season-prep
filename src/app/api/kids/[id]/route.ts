@@ -57,4 +57,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const limit = checkWriteLimit(req.headers);
   if (!limit.ok) {
-    return NextResponse.json({ error: "rate limit exceede
+    return NextResponse.json({ error: "rate limit exceeded" }, { status: 429 });
+  }
+  await ensureDb();
+  const sql = getDb();
+  const { id } = await params;
+  if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+  await sql`UPDATE sp_tasks SET kid_id=NULL WHERE kid_id=${id}`;
+  await sql`DELETE FROM sp_kids WHERE id=${id}`;
+  return NextResponse.json({ success: true });
+}

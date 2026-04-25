@@ -35,4 +35,8 @@ export async function POST(req: NextRequest) {
   if (name.length > 50) return NextResponse.json({ error: "name too long" }, { status: 400 });
   const id = newId();
   await sql`
-    INS
+    INSERT INTO sp_kids (id, name, born_year, size_top, size_bottom, size_shoe, notes)
+    VALUES (${id}, ${name}, ${born_year}, '', '', '', '')
+  `;
+  return NextResponse.json({ id, success: true });
+}

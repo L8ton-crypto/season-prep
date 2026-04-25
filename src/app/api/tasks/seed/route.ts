@@ -6,7 +6,6 @@ import { checkWriteLimit } from "@/lib/rate";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Seed the template tasks for a given year. Idempotent on (year, season, title).
 export async function POST(req: NextRequest) {
   const limit = checkWriteLimit(req.headers);
   if (!limit.ok) {
@@ -24,7 +23,6 @@ export async function POST(req: NextRequest) {
   if (year < 2000 || year > 2100) {
     return NextResponse.json({ error: "invalid year" }, { status: 400 });
   }
-  // Find which template titles already exist for this year.
   const existing = await sql`
     SELECT season, title FROM sp_tasks WHERE year=${year}
   `;
@@ -38,4 +36,9 @@ export async function POST(req: NextRequest) {
     const id = newId();
     await sql`
       INSERT INTO sp_tasks (id, year, season, title, category, due_month, position, done)
-      VALUES (${id}, ${year}, ${t.
+      VALUES (${id}, ${year}, ${t.season}, ${t.title}, ${t.category}, ${t.due_month ?? null}, ${position}, false)
+    `;
+    inserted++;
+  }
+  return NextResponse.json({ success: true, inserted, total: TEMPLATE_TASKS.length });
+}
